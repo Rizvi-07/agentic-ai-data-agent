@@ -426,7 +426,7 @@ class DataAgentSchema(BaseModel):
 1. Router classifies as SQL query
 2. SQL Agent fetches schema
 3. Generates: `SELECT vehicle_type, AVG(rating) FROM rides GROUP BY vehicle_type LIMIT 10`
-4. Validates safety ✓
+4. Validates safety
 5. Executes and returns results
 
 ---
