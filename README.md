@@ -167,7 +167,7 @@ LLM_MODEL_HIGH=claude-3-opus
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Data_Agent/
@@ -413,7 +413,7 @@ class DataAgentSchema(BaseModel):
 
 ---
 
-## 📚 Examples
+## Examples
 
 ### Example 1: Database Query
 
