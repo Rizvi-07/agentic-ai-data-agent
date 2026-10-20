@@ -5,6 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from agents import sql_analyst
 from utils.llm_pick import pick_llm
+from utils.output import format_result
 from utils.etl_tools import ETLTools
 from Models.schema import RouterSchema, DataAgentSchema
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
@@ -108,12 +109,27 @@ with open("data_agent_graph.png", "wb") as f:
 
 if __name__ == "__main__":
 
+    # response = data_agent.invoke(
+    #     {"messages":[HumanMessage(content="I want to extract the data from the API endpoint 'https://pokeapi.co/api/v2/pokemon' and save it to data/extract folder in the csv folder")],
+    #      "route_response": ""}
+    # )
+    # response = data_agent.invoke(
+    #         {"messages":[HumanMessage(content="Show me the average rating for each vehicle type")],
+    #          "route_response": ""}
+    #     )
+    # response = data_agent.invoke(
+    #             {"messages":[HumanMessage(content="What are the different kind of payment methods available")],
+    #              "route_response": ""}
+    #         )
+    # response = data_agent.invoke(
+    #             {"messages":[HumanMessage(content="Show completed payment total, grouped by payment method.")],
+    #              "route_response": ""}
+    #         )
     response = data_agent.invoke(
-        {"messages":[HumanMessage(content="I want to extract the data from the API endpoint 'https://pokeapi.co/api/v2/pokemon' and save it to data/extract folder in the csv folder")],
-         "route_response": ""}
-    )
-
-    print(response)
+                    {"messages":[HumanMessage(content="Show completed payment total, grouped by payment method and make a csv file and save it to data/extract folder in the csv folder")],
+                     "route_response": ""}
+                )
+    print(format_result(response))
 
 
 

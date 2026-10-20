@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils.llm_pick import pick_llm
+from utils.output import format_result
 from utils.database import DatabaseUtil
 from Models.schema import AgentSchema, JudgeSchema
 from langchain_core.messages import AIMessage, HumanMessage
@@ -232,15 +233,4 @@ if __name__ == "__main__":
 
     # Execute the Graph
     sql_analyst_response = sql_analyst.invoke(input_schema)
-    print(sql_analyst_response['messages'])  # Print the final output of the graph execution
-    print("********************************")
-
-    print(sql_analyst_response['generated_sql_query'])  # Print the generated SQL query
-
-    print("********************************")
-
-    print(sql_analyst_response['sql_query_execution_result'])  # Print the result of executing the SQL query
-
-    print("********************************")
-
-    print(sql_analyst_response['prompt_query_context'])  # Print the prompt query context
+    print(format_result(sql_analyst_response))

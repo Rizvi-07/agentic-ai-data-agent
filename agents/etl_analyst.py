@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils.llm_pick import pick_llm
+from utils.output import format_result
 from utils.etl_tools import ETLTools
 from Models.schema import ETLAgentSchema
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
@@ -181,4 +182,4 @@ if __name__ == "__main__":
 # """)]}
 #     )    
 
-    print(response)
+    print(format_result(response))

@@ -1,5 +1,6 @@
 from agents.data_agent import data_agent
 from langchain_core.messages import HumanMessage
+from utils.output import format_result
 
 if __name__ == "__main__":
     response = data_agent.invoke(
@@ -7,4 +8,4 @@ if __name__ == "__main__":
          "route_response": ""}
     )
 
-    print(response)
+    print(format_result(response))
