@@ -134,7 +134,7 @@ resets the prompt and result view. Recent requests appear in the left sidebar.
 
 ![Data Agent workspace with the request form, examples, PostgreSQL tables, and extracted data panel](docs/images/1.png)
 
-*The workspace brings natural-language requests, live database tables, and extracted files together.*
+_The workspace brings natural-language requests, live database tables, and extracted files together._
 
 ### 2. Ask a database question
 
@@ -145,7 +145,7 @@ database's records at the time of the request.
 
 ![SQL analyst result showing completed payment totals grouped by payment method](docs/images/2.png)
 
-*A database question returns a readable answer under Your result, with the SQL analyst identified.*
+_A database question returns a readable answer under Your result, with the SQL analyst identified._
 
 ### 3. Extract database rows as CSV
 
@@ -157,7 +157,7 @@ deletes that extracted file immediately.
 
 ![ETL analyst result confirming a five-row ratings CSV export with download links](docs/images/3.png)
 
-*The extraction result reports the saved file and row count; the same CSV appears in Extracted data.*
+_The extraction result reports the saved file and row count; the same CSV appears in Extracted data._
 
 ### 4. Open the downloaded file in a spreadsheet
 
@@ -168,7 +168,7 @@ The downloaded file is a snapshot; it does not update when the database changes.
 
 ![Downloaded ratings CSV opened in Excel with seven columns and five data rows](docs/images/4.png)
 
-*The downloaded CSV opens in Excel for inspection and further analysis.*
+_The downloaded CSV opens in Excel for inspection and further analysis._
 
 ## Architecture
 
@@ -176,6 +176,32 @@ The application has four main parts: the browser workspace, a FastAPI server,
 a LangGraph agent team, and database/file access. FastAPI serves the website and
 runs the agents locally. The agents call external AI providers to interpret requests,
 generate queries, and explain results.
+
+### Agent architecture
+
+![Hierarchical agent architecture with a router, sequential SQL workflow, and ETL tool loop](docs/agent-architecture.png)
+
+The **Data Agent (Router)** classifies the request and selects one specialist.
+Database questions go to the SQL analyst; requests to extract, export, save, or
+transform data go to the ETL analyst.
+
+The **SQL Analyst** follows six steps: curate the question, retrieve schema
+context, generate SQL, validate it with an AI judge, execute an approved query,
+and explain the returned records. Rejected queries stop before execution.
+Database access goes through FastAPI, whose PostgreSQL connection also enforces
+read-only transactions, timeouts, and row limits independently of the AI judge.
+
+The **ETL Analyst** chooses tools, observes their responses, and repeats until it
+can return a result. Its capabilities include database/API extraction and local
+file transformation. Code execution is part of the local transformation tool,
+which generates and runs Pandas code. The three ETL boxes describe capabilities;
+they are not three mandatory consecutive graph nodes. Database CSV exports read
+PostgreSQL through FastAPI and write the file in Python.
+
+For example, "Which riders have failed payments?" follows the SQL branch.
+"Export those riders as CSV" follows the ETL branch. LangGraph carries the
+request state and controls routing; the website displays the answer and any
+downloadable files.
 
 ### System overview
 
@@ -229,7 +255,6 @@ additional ETL tool paths, separate from the database endpoints.
 3. **Choose the route.** The router selects SQL for a database answer or ETL when
    a file is requested. The example above follows the ETL branch.
 4. **Run the specialist.** The two branches use different workflows:
-
    - **SQL question:** retrieve the real schema, generate a SELECT query, and ask
      the model to check it. An approved query runs through `/api/database/query`;
      the SQL analyst then explains the returned rows. A rejected query is skipped
