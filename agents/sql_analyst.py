@@ -1,11 +1,12 @@
 import os
 import sys
+import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils.llm_pick import pick_llm
 from utils.output import format_result
-from utils.database import DatabaseUtil
+from utils.database_api import DatabaseAPI
 from Models.schema import AgentSchema, JudgeSchema
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph import StateGraph, START, END
@@ -31,17 +32,7 @@ def prompt_query_context(state: AgentSchema) -> AgentSchema:
 
     curated_question = state.curated_ques
 
-    conn_details = {
-        "host": os.environ['host'],
-        "port": os.environ['port'],
-        "user": os.environ['user'],
-        "password": os.environ['password'],
-        "dbname": os.environ['database']
-    }
-
-    obj = DatabaseUtil(conn_details)
-
-    schema_info = obj.schema_details("public")  # Fetch schema details for the 'public' schema
+    schema_info = json.dumps(DatabaseAPI().schema(), ensure_ascii=False)
 
     # Constructing the prompt query for the agent to generate the SQL query
     prompt = f"""
@@ -51,6 +42,8 @@ def prompt_query_context(state: AgentSchema) -> AgentSchema:
     table names, column names, data types, and sample data for each table so that 
     you can understand the structure of the database and generate an accurate SQL query.
     Unless user explicitly asks for specific number of rows, always limit the output to 10 rows.
+    Generate one SELECT (or WITH ... SELECT), never COPY or file operations.
+    Use only the actual table and column names supplied by the database API.
     Note - Just generate the SQL query without any explanation or additional text because
     this query will be executed directly on the database. So, the output should be SQL
     ready to be executed without any modifications.  
@@ -122,17 +115,7 @@ def execute_sql(state: AgentSchema) -> AgentSchema:
 
     sql_query = state.generated_sql_query
 
-    conn_details = {
-        "host": os.environ['host'],
-        "port": os.environ['port'],
-        "user": os.environ['user'],
-        "password": os.environ['password'],
-        "dbname": os.environ['database']
-    }
-
-    obj = DatabaseUtil(conn_details)
-
-    execution_result = obj.execute_sql(sql_query)  # Execute the SQL query on the database
+    execution_result = json.dumps(DatabaseAPI().query(sql_query), ensure_ascii=False)
 
     state.sql_query_execution_result = execution_result
 

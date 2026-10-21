@@ -1,11 +1,54 @@
+# Credentials and local environment settings
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Virtual environments
+.venv/
+venv/
+env/
+
 # Python-generated files
 __pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
+.eggs/
 
-# Virtual environments
-.venv
-.env
+# Test, coverage, and tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+.ipynb_checkpoints/
+
+# Generated output; keep shared data/*.csv and folder placeholders
+/data/extract/*
+!/data/extract/.gitkeep
+/data/transform/*
+!/data/transform/.gitkeep
+/data_agent_graph.png
+/sql_analyst_graph.png
+/etl_analyst_graph.png
+/test_schema_details.txt
+
+# Local backups, logs, and temporary files
+*.bak
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

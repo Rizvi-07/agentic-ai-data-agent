@@ -8,7 +8,7 @@ from utils.llm_pick import pick_llm
 from utils.output import format_result
 from utils.etl_tools import ETLTools
 from Models.schema import RouterSchema, DataAgentSchema
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
 from langchain.tools import tool
 from langchain_anthropic import ChatAnthropic
@@ -20,6 +20,15 @@ llm = pick_llm("claude")
 
 llm_router = llm.with_structured_output(RouterSchema)
 
+ROUTER_INSTRUCTIONS = """Classify the user's data task.
+Use etl for any request to extract, export or save data as a file (CSV, JSON,
+Parquet), including data from a PostgreSQL table. For example, 'Extract top 5
+data from ratings table and save it as CSV in data/extract' is etl.
+The ETL agent has FastAPI tools for the connected PostgreSQL database.
+Use sql for database questions, joins, filters, counts and summaries when no
+file is requested. A named table refers to the connected PostgreSQL database
+unless the user explicitly provides an external URL or local input file.
+"""
 
 # ---------------------------- DATA AGENT GRAPH ---------------------------- #
 
@@ -28,26 +37,23 @@ def router_node(state:DataAgentSchema):
 
     message = state.messages[-1].content
 
-    route_response_dict = llm_router.invoke(message).model_dump()
+    route_response_dict = llm_router.invoke([
+        SystemMessage(content=ROUTER_INSTRUCTIONS), HumanMessage(content=message)
+    ]).model_dump()
 
     route_response = route_response_dict['answer']
 
-    state.route_response = route_response
-
-    return state
+    return {"route_response": route_response}
 
 def etl_node(state:DataAgentSchema):
 
     message = state.messages[-1].content
 
     response = etl_analyst.invoke(
-             {"messages":[HumanMessage(content=f"""
-            {message}
-    """)]}
+             {"messages": [HumanMessage(content=message)]},
+             config={"recursion_limit": 16}
         ) 
-    state.messages = state.messages + [response]
-
-    return state
+    return {"messages": [response]}
 
 def sql_node(state:DataAgentSchema):
 
@@ -67,9 +73,7 @@ def sql_node(state:DataAgentSchema):
 
     response = sql_analyst.invoke(input_schema)
 
-    state.messages = state.messages + [response]
-
-    return state
+    return {"messages": [response]}
 
 
 
@@ -99,11 +103,13 @@ data_agent_graph.add_conditional_edges("router_node", route_edge,
 
 data_agent = data_agent_graph.compile()
 
-# Optional|
-from IPython.display import display, Image
-img = Image(data_agent.get_graph().draw_mermaid_png())
-with open("data_agent_graph.png", "wb") as f:
-    f.write(img.data)
+# Generate a graph image only when explicitly requested from the CLI.
+# Importing this module for the website must not contact the diagram service.
+if __name__ == "__main__" and "--graph" in sys.argv:
+    from IPython.display import Image
+    img = Image(data_agent.get_graph().draw_mermaid_png())
+    with open("data_agent_graph.png", "wb") as f:
+        f.write(img.data)
 
 
 

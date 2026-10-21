@@ -25,7 +25,7 @@ class ETLTools:
         output_folder = os.path.join(project_root, output_folder)      
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=45)
             response.raise_for_status()
             data  = response.json()
 
@@ -96,4 +96,3 @@ if __name__ == "__main__":
     obj = ETLTools()
     path = "C:\\Data_Agent\\data\\extract\\extracted_data.csv"
     print(obj.transform_load_context(path))
-          

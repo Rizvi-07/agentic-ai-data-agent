@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ask your database questions, extract API data, and transform files with your AI data agents.">
+  <title>Data Agent - Your data, in plain language</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%230d766b'/%3E%3Cpath d='M12 12h8c11 0 11 16 0 16h-8z' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="Data Agent home"><span class="brand-mark">d<span>↗</span></span><span>Data Agent<small>YOUR DATA WORKSPACE</small></span></a>
+    <button class="new-request" id="new-request"><span>＋</span> New request</button>
+    <div class="nav-label">WORKSPACE</div>
+    <div class="nav-active"><span aria-hidden="true">◈</span> Ask your data <span class="nav-dot"></span></div>
+    <div class="history-heading"><span class="nav-label">RECENT REQUESTS</span><button id="clear-history" class="quiet-button" aria-label="Clear recent requests">Clear</button></div>
+    <div id="history" class="history"><p class="sidebar-empty">Your recent requests<br>will appear here.</p></div>
+    <div class="sidebar-bottom"><span class="local-dot"></span><div>Local workspace<small>Runs on your computer</small></div><span class="local-icon" aria-hidden="true">⌘</span></div>
+  </aside>
+
+  <main>
+    <header class="topbar"><span>Workspace <span class="crumb">/</span> <strong>Overview</strong></span><span id="connection" class="connection"><span class="status-dot"></span><span id="connection-label">Connecting…</span></span></header>
+    <div class="page">
+      <section class="intro"><div class="eyebrow"><span></span> A LITTLE LESS QUERYING. A LOT MORE CLARITY.</div><h1>Your data.<br><span>Just ask.</span></h1><p>Explore your database, collect API data, or transform a file.<br>Tell your agents what you need. They’ll handle the next steps.</p></section>
+      <div class="workspace-grid">
+        <div class="main-column">
+          <section class="composer" aria-labelledby="request-title">
+            <div class="card-heading"><h2 id="request-title"><span class="spark" aria-hidden="true">✳</span> What would you like to find out?</h2><span class="small-badge">ASK IN PLAIN LANGUAGE</span></div>
+            <form id="request-form">
+              <label class="sr-only" for="question">Your question or data task</label>
+              <textarea id="question" maxlength="4000" rows="4" placeholder="Show completed payment totals, grouped by payment method…" required></textarea>
+              <div id="selected-table" class="selected-table" hidden><span id="selected-table-label"></span><button type="button" id="remove-table" aria-label="Remove selected table">×</button></div>
+              <div class="composer-footer">
+                <span class="keyboard-hint">Be specific. Your agents will take it from there.</span>
+                <div class="composer-actions"><button type="button" id="clear-request" class="primary-button">Clear</button><button type="submit" id="run-button" class="primary-button">Run Request <span aria-hidden="true">↗</span></button></div>
+              </div>
+            </form>
+            <p class="setup-note" id="setup-note" hidden></p>
+          </section>
+
+          <div class="section-heading"><h2>Start with an idea</h2><span>Choose a task to try</span></div>
+          <div class="examples">
+            <button class="example" data-example="sql"><span class="example-icon blue" aria-hidden="true">▥</span><strong>Explore your database</strong><span>Find available payment methods.</span><span class="example-arrow" aria-hidden="true">↗</span></button>
+            <button class="example" data-example="extract"><span class="example-icon amber" aria-hidden="true">↓</span><strong>Extract table data</strong><span>Save five database rows as CSV.</span><span class="example-arrow" aria-hidden="true">↗</span></button>
+            <button class="example" data-example="summary"><span class="example-icon purple" aria-hidden="true">⇄</span><strong>Summarize a table</strong><span>Find patterns in your database.</span><span class="example-arrow" aria-hidden="true">↗</span></button>
+          </div>
+
+          <section class="result-card" id="result-card" aria-labelledby="result-title" aria-busy="false" hidden>
+            <div class="card-heading"><h2 id="result-title">Your result</h2><div class="result-actions"><span id="result-agent" class="agent-badge" hidden></span><button id="copy-result" class="quiet-button" hidden>Copy answer</button></div></div>
+            <div id="empty-result" class="empty-result"><div class="result-art" aria-hidden="true"><span></span><span></span><span></span><i>✧</i></div><h3>A question is a good place to start.</h3><p>Your answer will appear here, ready to use.</p></div>
+            <div id="running-result" class="running-result" hidden role="status"><span class="spinner"></span><div><strong>Your agents are working</strong><p id="running-note">Understanding your request and choosing the right tools…</p></div></div>
+            <div id="error-result" class="error-result" role="alert" hidden></div>
+            <div id="answer" class="answer" hidden></div>
+            <div id="result-files" class="result-files" aria-label="Files created by this request" hidden></div>
+            <section class="preview-card" id="table-preview" aria-labelledby="preview-title" hidden>
+              <div class="card-heading"><h3 id="preview-title">Table preview</h3><button id="close-preview" class="quiet-button">Clear selection</button></div>
+              <p id="preview-note" class="preview-note" role="status"></p>
+              <div class="table-scroll" id="preview-scroll" tabindex="0" role="region" aria-label="Selected table rows" hidden><table id="preview-data"></table></div>
+            </section>
+            <div id="result-footer" class="result-footer" hidden><span class="success-dot"></span> Request completed <span id="elapsed"></span></div>
+          </section>
+          <footer class="page-footer"><span>Built for curiosity. Powered by your data.</span><span>SQL <span>·</span> API extraction <span>·</span> File transformation</span></footer>
+        </div>
+
+        <aside class="right-column">
+          <section class="how-card"><span class="label">A SMALL TEAM, ON YOUR SIDE</span><h2>One request.<br>The right agent.</h2><div class="agent-step"><span class="step-icon">01</span><div><strong>Router</strong><p>Understands what you need.</p></div></div><div class="agent-step"><span class="step-icon">02</span><div><strong>SQL or ETL analyst</strong><p>Queries, extracts, or transforms.</p></div></div><div class="agent-step"><span class="step-icon">03</span><div><strong>A clear answer</strong><p>Just the result, ready for you.</p></div></div></section>
+          <section class="tables-card" aria-labelledby="tables-title"><div class="tables-heading"><h2 id="tables-title">PostgreSQL tables <span id="table-count">0</span></h2><button id="refresh-tables" class="quiet-button" aria-label="Refresh PostgreSQL tables">↻</button></div><p class="tables-description" id="database-label">Live tables from your configured database.</p><p class="tables-description">Select a table to preview rows and ask about it.</p><div id="tables-list" aria-live="polite"><p class="tables-empty">Connecting to PostgreSQL…</p></div></section>
+          <section class="tables-card extractions-card" aria-labelledby="extractions-title">
+            <div class="tables-heading"><h2 id="extractions-title">Extracted data <span id="extraction-count">0</span></h2><button id="refresh-extractions" class="quiet-button" aria-label="Refresh extracted data">↻</button></div>
+            <p class="tables-description">Download your saved extracts. New files appear here after a request.</p>
+            <div id="extractions-list" aria-live="polite"><p class="tables-empty">Loading extracted data…</p></div>
+          </section>
+          <p class="local-note"><span aria-hidden="true">⌁</span> Credentials stay on the server.<br>Requests use your configured AI providers.</p>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

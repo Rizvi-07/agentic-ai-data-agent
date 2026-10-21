@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -7,10 +8,12 @@ from utils.llm_pick import pick_llm
 from utils.output import format_result
 from utils.etl_tools import ETLTools
 from Models.schema import ETLAgentSchema
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage, SystemMessage
+from utils.database_tools import list_database_tables, get_database_schema, extract_database_table, query_database
 from langgraph.graph import StateGraph, START, END
 from langchain.tools import tool
 from langchain_anthropic import ChatAnthropic
+from pydantic import ValidationError
 
 
 #------------------------------------ AGENT TOOLS ------------------------------------#
@@ -19,8 +22,9 @@ from langchain_anthropic import ChatAnthropic
 @tool
 def extract_load_tool(url:str, output_folder:str, format:str) -> str:
     """
-    This tool extracts the data from the API (url) and loads it into the
-    the desired location (output_folder).
+    Extract data from an external API URL explicitly provided by the user.
+    For a PostgreSQL table, use extract_database_table or query_database instead.
+    Never invent a public URL for a database table.
 
     Args:
         url (str): The API endpoint from which to extract data.
@@ -83,11 +87,35 @@ def transform_load_tool(input_file_path:str,output_folder:str,output_format:str,
 
 
 # Toolkit 
-tools = [extract_load_tool, transform_load_tool]
+tools = [list_database_tables, get_database_schema, extract_database_table,
+         query_database, extract_load_tool, transform_load_tool]
 
 llm = pick_llm("claude")
 llm_bind = llm.bind_tools(tools)
 
+ETL_INSTRUCTIONS = """You extract and transform data using tools.
+A request mentioning a database table (such as ratings, payments, rides, users
+or vehicles) refers to the connected PostgreSQL database. Access that database
+only through the supplied FastAPI tools.
+
+For a table export, first call list_database_tables to confirm the actual name,
+then extract_database_table. Example: 'Extract top 5 data from ratings table
+and save it as CSV in data/extract' means table='ratings', limit=5.
+Without a requested ranking column, leave order_by unset and explain the
+returned ordering in your final answer. To rank by score or another column,
+call get_database_schema and use the confirmed column with the right direction.
+For filters, joins or summaries saved as CSV, get_database_schema then call
+query_database with a SELECT and save_csv=True. Never use COPY.
+The default limit is 1000 and the maximum is 10000 rows per request; disclose
+any limit when the user requests more rows or all rows.
+
+Do not invent an external URL or use sample CSVs for a PostgreSQL table. If a
+table is absent or an API call fails, explain that error; do not substitute a
+public dataset. Use extract_load_tool only for an external URL supplied by the
+user, and transform_load_tool only when the user actually requests a local file.
+Report success only after a successful tool response. Include the exact saved
+filename and row count, or report the error. After saving, finish the task.
+"""
 
 # ---------------------------------------- AGENT GRAPH ---------------------------------------- #
 
@@ -95,19 +123,9 @@ def llm_node(state:ETLAgentSchema):
 
     messages = state.messages
 
-    prompt = f"""
-            You are a Python Data Analyst who has access to tools that can extract and load, 
-            transform and load data. You will be provided with a user's question 
-            and you would need to perform the right ETL operations as per the user's question. 
-            If the operation is performed then inform the user and end the coversation.
-            Here's the chat history: {messages}\n
-    """
-
-    final_answer = llm_bind.invoke(prompt)
-
-    state.messages = messages + [final_answer]
-
-    return state
+    final_answer = llm_bind.invoke([SystemMessage(content=ETL_INSTRUCTIONS), *messages])
+    # The graph's reducer appends messages; return only the new message.
+    return {"messages": [final_answer]}
 
 
 def tool_node(state:ETLAgentSchema):
@@ -120,17 +138,35 @@ def tool_node(state:ETLAgentSchema):
     tools_by_name = {tool.name: tool for tool in tools}
 
     tool_calls = state.messages[-1].tool_calls
+    # Only the user's messages can authorize an external source. A URL made up
+    # by the model or returned by another tool must not replace a database table.
+    supplied_urls = {
+        url.rstrip(".,);]/")
+        for message in state.messages if isinstance(message, HumanMessage)
+        for url in re.findall(r'https?://[^\s<>"\']+', str(message.content))
+    }
 
     for tool_call in tool_calls:
 
-        tool = tools_by_name[tool_call['name']]
-        observation = tool.invoke(tool_call['args'])
+        selected_tool = tools_by_name.get(tool_call['name'])
+        if selected_tool is None:
+            observation = "Unknown tool. Use one of the supplied tools."
+        elif (selected_tool.name == "extract_load_tool"
+              and tool_call['args'].get('url', '').rstrip(".,);]/") not in supplied_urls):
+            observation = (
+                "This external URL was not supplied by the user. For a PostgreSQL "
+                "table, use list_database_tables and extract_database_table through "
+                "FastAPI. Do not substitute a public dataset."
+            )
+        else:
+            try:
+                observation = selected_tool.invoke(tool_call['args'])
+            except ValidationError:
+                observation = "Invalid tool arguments. Check the tool's fields and allowed values, then retry."
 
         tools_results.append(ToolMessage(content=observation, tool_call_id = tool_call['id']))
 
-    state.messages = state.messages + tools_results
-
-    return state   
+    return {"messages": tools_results}
 
 
 # Nodes & Edges
